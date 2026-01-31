@@ -1,4 +1,6 @@
-/* Base Theme */
+/* =========================================
+   Base Theme & Layout
+   ========================================= */
 body {
     background-color: #0E1117;
     color: #FAFAFA;
@@ -6,7 +8,11 @@ body {
     overflow: hidden;
 }
 
-/* Animations */
+.flex-1 { flex: 1; }
+
+/* =========================================
+   Animations
+   ========================================= */
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
@@ -33,7 +39,13 @@ body {
     40% { transform: scale(1); }
 }
 
-/* Processing Overlay Styles */
+/* =========================================
+   Processing Overlay (Initial Upload)
+   ========================================= */
+#processing-overlay {
+    transition: opacity 0.5s ease;
+}
+
 .vault-icon-lg {
     font-size: 5rem;
     filter: drop-shadow(0 0 30px rgba(0, 200, 83, 0.2));
@@ -58,7 +70,89 @@ body {
     z-index: 10;
 }
 
-/* Header Badge */
+/* =========================================
+   Chat Interface & Messages
+   ========================================= */
+.message {
+    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+/* --- FIX: Preserves structure and line breaks --- */
+.message-bubble {
+    transition: all 0.2s ease;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.user-bubble {
+    background: linear-gradient(135deg, #00C853 0%, #009624 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 200, 83, 0.15);
+    border: none;
+}
+
+.ai-bubble {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d !important;
+    color: #e6edf3;
+}
+
+.streaming-cursor {
+    display: inline-block;
+    color: #00C853;
+    font-weight: bold;
+    animation: blink 1s infinite;
+    margin-left: 2px;
+}
+
+/* =========================================
+   Thinking & Indexing Components
+   ========================================= */
+
+/* The Pulse for Thinking */
+.pulse-ring {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #f59e0b;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    animation: pulse-yellow 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+/* The Horizontal Cards for Sources */
+.index-card {
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    border: 1px solid #2d3748 !important;
+    background-color: #111418;
+    cursor: default;
+    flex-shrink: 0; /* Prevents cards from squishing */
+}
+
+.index-card:hover {
+    transform: translateY(-2px);
+    border-color: #00C853 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Custom Scrollbar for horizontal cards */
+.overflow-auto::-webkit-scrollbar {
+    height: 4px;
+}
+.overflow-auto::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 10px;
+}
+
+/* =========================================
+   Sidebar & Status
+   ========================================= */
+.sidebar {
+    transition: all 0.3s ease;
+}
+
 .offline-badge {
     color: #00C853;
     font-size: 0.8rem;
@@ -76,44 +170,13 @@ body {
     animation: pulse 2s infinite;
 }
 
-/* Message Styles */
-.message {
-    animation: fadeInUp 0.4s ease-out forwards;
-    opacity: 0; /* Start hidden for animation */
-}
-
-/* --- IMPORTANT FIX FOR STRUCTURE --- */
-.message-bubble {
-    transition: all 0.2s ease;
-    line-height: 1.6;
-    white-space: pre-wrap; /* This preserves newlines and formatting! */
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Clean readable font */
-}
-
-.user-bubble {
-    background: linear-gradient(135deg, #00C853 0%, #009624 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(0, 200, 83, 0.15);
-    border: none;
-}
-
-.ai-bubble {
-    background-color: #161b22 !important;
-    border: 1px solid #30363d !important;
-    color: #e6edf3;
-}
-
-/* Sidebar Delays */
-.fade-in-delay-1 { animation: fadeInUp 0.5s ease-out 0.1s forwards; opacity: 0; }
-.fade-in-delay-2 { animation: fadeInUp 0.5s ease-out 0.2s forwards; opacity: 0; }
-.fade-in-delay-3 { animation: fadeInUp 0.5s ease-out 0.3s forwards; opacity: 0; }
-
-/* Scrollbar */
+/* =========================================
+   Scrollbar & Markdown
+   ========================================= */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0E1117; }
 ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
 
-/* Markdown & Code */
 .markdown-content pre {
     background: #0d1117 !important;
     border: 1px solid #30363d;
@@ -122,6 +185,7 @@ body {
     margin: 1rem 0;
     overflow-x: auto;
 }
+
 .markdown-content code {
     color: #79c0ff;
     background: rgba(110, 118, 129, 0.2);
@@ -129,57 +193,3 @@ body {
     border-radius: 4px;
     font-size: 0.9em;
 }
-
-.streaming-cursor {
-    display: inline-block;
-    color: #00C853;
-    font-weight: bold;
-    animation: blink 1s infinite;
-    margin-left: 2px;
-}
-
-/* Indexing Cards */
-.index-card {
-    transition: transform 0.2s ease, border-color 0.2s ease;
-    border: 1px solid #2d3748 !important;
-    background-color: #161b22;
-    cursor: default;
-}
-
-.index-card:hover {
-    transform: translateY(-2px);
-    border-color: #00C853 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* Pulse Animation */
-.pulse-ring {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #f59e0b;
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
-    animation: pulse-yellow 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
-}
-
-/* Typing Indicator */
-.typing-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    height: 100%;
-}
-
-.typing-indicator span {
-    display: block;
-    width: 5px;
-    height: 5px;
-    background-color: #3b82f6;
-    border-radius: 50%;
-    animation: bounce 1.4s infinite ease-in-out both;
-}
-
-.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0s; }

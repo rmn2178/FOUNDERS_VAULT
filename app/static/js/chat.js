@@ -34,10 +34,10 @@ socket.on('ready', function(data) {
             isProcessing = false;
             inputField.disabled = false;
             sendBtn.disabled = false;
-            inputField.placeholder = `Ask about your ${window.currentFile.type.toUpperCase()}...`;
+            inputField.placeholder = "Ask about your documents...";
             inputField.focus();
 
-            const welcomeMsg = `<strong>System Ready.</strong><br>I have processed <em>${window.currentFile.name}</em>. You can now ask questions about its content.`;
+            const welcomeMsg = `<strong>System Ready.</strong><br>I have synchronized your vault with the uploaded documents. You can now query across all of them.`;
             addMessageToHistory(welcomeMsg, 'assistant');
 
             if (data.preview) {
@@ -48,11 +48,11 @@ socket.on('ready', function(data) {
     updateStatus('Ready', '✅');
 });
 
-// --- UPDATED PROCESS HANDLER ---
+// --- HANDLE THINKING & INDEXING STEPS ---
 socket.on('process_status', function(data) {
     let processContainer = document.getElementById('current-process-container');
 
-    // Create container if it doesn't exist (start of thinking)
+    // Create container if it doesn't exist
     if (!processContainer || data.step === 'thinking') {
         processContainer = createProcessBubble();
     }
@@ -60,10 +60,13 @@ socket.on('process_status', function(data) {
     const contentDiv = processContainer.querySelector('.process-content');
 
     if (data.step === 'thinking') {
-        contentDiv.innerHTML = `<div class="d-flex align-items-center"><span class="pulse-ring me-2"></span> <span class="text-muted">${data.message}</span></div>`;
+        contentDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <span class="pulse-ring me-2"></span>
+                <span class="text-muted">${data.message}</span>
+            </div>`;
     }
     else if (data.step === 'indexing') {
-        // Show the cards
         let cardsHtml = `<div class="mb-2"><small class="text-success fw-bold">${data.message}</small></div>`;
         cardsHtml += `<div class="d-flex gap-2 overflow-auto pb-2" style="white-space: nowrap; scrollbar-width: thin;">`;
 
@@ -73,36 +76,46 @@ socket.on('process_status', function(data) {
                     <div class="index-card p-2 rounded bg-dark border border-secondary" style="min-width: 200px; max-width: 200px; white-space: normal;">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="badge bg-secondary" style="font-size: 0.6rem">Ref #${item.id}</span>
-                            <span class="text-muted" style="font-size: 0.6rem">Pg ${item.page}</span>
+                            <span class="text-muted" style="font-size: 0.55rem; overflow: hidden; text-overflow: ellipsis;">${item.page}</span>
                         </div>
-                        <div style="font-size: 0.7rem; color: #a0aec0; height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">"${item.content}"</div>
+                        <div style="font-size: 0.7rem; color: #a0aec0; height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                            "${item.content}"
+                        </div>
                     </div>`;
             });
         }
         cardsHtml += `</div>`;
         contentDiv.innerHTML = cardsHtml;
     }
-
     scrollToBottom();
 });
 
 socket.on('stream_start', function() {
     isStreaming = true;
 
-    // Remove ID so this process container becomes "history"
+    // 1. Finalize the thought bubble by removing its dynamic ID
     const processContainer = document.getElementById('current-process-container');
-    if(processContainer) processContainer.id = '';
+    if(processContainer) {
+        processContainer.id = '';
+    }
 
-    document.getElementById('streaming-message').classList.remove('d-none');
+    // 2. IMPORTANT: Move the streaming div to the bottom of the container
+    const container = document.getElementById('chat-container');
+    const streamingDiv = document.getElementById('streaming-message');
+    container.appendChild(streamingDiv); // This physically moves it after the user's question
+
+    streamingDiv.classList.remove('d-none');
     document.getElementById('stream-content').innerHTML = '<span class="streaming-cursor">▋</span>';
-    document.getElementById('stream-sources').innerHTML = '';
     scrollToBottom();
 });
 
 socket.on('stream_chunk', function(data) {
     const content = document.getElementById('stream-content');
-    const cleanContent = content.innerHTML.replace('<span class="streaming-cursor">▋</span>', '');
-    content.innerHTML = cleanContent + data.chunk + '<span class="streaming-cursor">▋</span>';
+    const chunkText = typeof data === 'string' ? data : (data.chunk || '');
+
+    const currentHtml = content.innerHTML.replace('<span class="streaming-cursor">▋</span>', '');
+    content.innerHTML = currentHtml + chunkText + '<span class="streaming-cursor">▋</span>';
+
     scrollToBottom();
 });
 
@@ -112,12 +125,14 @@ socket.on('stream_end', function(data) {
     content.innerHTML = content.innerHTML.replace('<span class="streaming-cursor">▋</span>', '');
 
     let sourceHtml = '';
-    if (data.sources) {
+    if (data && data.sources) {
         sourceHtml = data.sources.replace(/\n/g, '<br>');
     }
 
     setTimeout(() => {
-        addMessageToHistory(content.innerHTML + (sourceHtml ? `<div class="mt-2 pt-2 border-top border-secondary small text-muted">${sourceHtml}</div>` : ''), 'assistant');
+        const finalContent = content.innerHTML + (sourceHtml ? `<div class="mt-2 pt-2 border-top border-secondary small text-muted">${sourceHtml}</div>` : '');
+        addMessageToHistory(finalContent, 'assistant');
+
         document.getElementById('streaming-message').classList.add('d-none');
         document.getElementById('stream-content').innerHTML = '';
     }, 100);
@@ -128,11 +143,12 @@ socket.on('response', function(data) {
 });
 
 socket.on('error', function(data) {
-    alert('Error: ' + data.message);
+    alert('Vault Error: ' + data.message);
     isStreaming = false;
     updateStatus('Error occurred', '⚠️');
 });
 
+// --- FORM SUBMISSION ---
 document.getElementById('chat-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const message = inputField.value.trim();
@@ -145,6 +161,8 @@ document.getElementById('chat-form').addEventListener('submit', function(e) {
     socket.emit('chat_message', {message: message});
     updateStatus('Thinking...', '🤔');
 });
+
+// --- UI HELPERS ---
 
 function updateOverlay(text, percent) {
     statusText.textContent = text;
@@ -171,9 +189,8 @@ function createProcessBubble() {
     const div = document.createElement('div');
     div.id = 'current-process-container';
     div.className = 'message mb-2';
-    // Styled for "System thought"
     div.innerHTML = `
-        <div class="d-inline-block p-3 rounded-3" style="background: rgba(30, 41, 59, 0.5); border: 1px dashed #4a5568; max-width: 85%; width: fit-content;">
+        <div class="d-inline-block p-3 rounded-3" style="background: rgba(30, 41, 59, 0.4); border: 1px dashed #4a5568; max-width: 85%; width: fit-content;">
             <div class="process-content"></div>
         </div>
     `;
@@ -204,5 +221,6 @@ function showDataPreview(html) {
             <strong>📊 Data Preview</strong>
             <div class="overflow-auto mt-2">${html}</div>
         </div>`;
-    container.insertBefore(div, container.firstChild);
+    container.appendChild(div);
+    scrollToBottom();
 }

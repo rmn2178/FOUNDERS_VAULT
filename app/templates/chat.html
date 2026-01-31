@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block" style="background-color: #0E1117; height: 100vh; border-right: 1px solid #2d3748;">
+<div class="col-md-3 col-lg-2 sidebar p-3" style="background-color: #0E1117; height: 100vh; border-right: 1px solid #2d3748;">
     <div class="d-flex align-items-center mb-4">
         <span class="fs-4">🛡️</span>
-        <h5 class="mb-0 ms-2 fw-bold">Founder's Vault</h5>
+        <h5 class="mb-0 ms-2">Founder's Vault</h5>
     </div>
 
-    <div class="mb-4 fade-in-delay-1">
-        <small class="text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">System Control</small>
+    <div class="mb-4">
+        <small class="text-muted text-uppercase">System Control</small>
         <div class="mt-2">
             <label class="form-label small">AI Engine</label>
             <select id="model-select" class="form-select form-select-sm bg-dark text-light border-secondary" disabled>
@@ -17,66 +17,77 @@
                 {% endfor %}
             </select>
             {% if models[selected_model].mode == 'performance' %}
-            <div class="badge bg-info bg-opacity-10 text-info border border-info mt-2 w-100 py-2">
-                🚀 High Performance
-            </div>
+            <span class="badge bg-info mt-2">🚀 High Performance</span>
             {% else %}
-            <div class="badge bg-success bg-opacity-10 text-success border border-success mt-2 w-100 py-2">
-                🟢 Speed Mode
-            </div>
+            <span class="badge bg-success mt-2">🟢 Speed Mode</span>
             {% endif %}
         </div>
     </div>
 
-    <div class="mb-4 fade-in-delay-2">
-        <small class="text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Current Document</small>
-        <div class="mt-2 p-3 rounded bg-dark border border-secondary">
-            <div class="d-flex align-items-center mb-1">
-                <span class="me-2">📄</span>
-                <span class="d-block text-truncate fw-bold">{{ current_file.name }}</span>
+    <div class="mb-4">
+        <small class="text-muted text-uppercase">Active Documents</small>
+        <div class="mt-2" style="max-height: 300px; overflow-y: auto;">
+            {% for file in uploaded_files %}
+            <div class="p-2 mb-2 rounded bg-dark border border-secondary fade-in-delay-1">
+                <small class="d-block text-truncate fw-bold">📄 {{ file.name }}</small>
+                <small class="text-muted" style="font-size: 0.7rem;">{{ file.type.upper() }} Document</small>
             </div>
-            <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ current_file.type }} Format</small>
+            {% endfor %}
         </div>
     </div>
 
-    <div class="mt-auto fade-in-delay-3">
+    <div class="mt-auto">
         <form action="{{ url_for('main.clear_session') }}" method="post" class="d-grid gap-2">
-            <button type="submit" class="btn btn-outline-warning btn-sm">Clear Chat Memory</button>
+            <button type="submit" class="btn btn-outline-warning btn-sm">Clear Chat</button>
             <a href="{{ url_for('main.new_session') }}" class="btn btn-outline-danger btn-sm">New Session</a>
         </form>
     </div>
 </div>
 
-<div class="col-md-9 col-lg-10 p-0 d-flex flex-column position-relative" style="height: 100vh; background-color: #0E1117;">
-
+<div class="col-md-9 col-lg-10 p-0 d-flex flex-column" style="height: 100vh; background-color: #0E1117;">
     <div id="processing-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center z-3"
          style="background-color: rgba(14, 17, 23, 0.98); backdrop-filter: blur(10px);">
         <div class="scanner-container mb-5">
             <div class="scanner-line"></div>
             <span class="vault-icon-lg">📄</span>
         </div>
-        <h3 class="fw-bold mb-2">Analyzing Document</h3>
-        <p class="text-info" id="overlay-status">Initializing secure environment...</p>
+        <h3 class="fw-bold mb-2">Synchronizing Vault</h3>
+        <p class="text-info" id="overlay-status">Preparing secure environment...</p>
         <div class="progress w-25 mt-3" style="height: 4px; background-color: #2d3748;">
-            <div id="loading-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%; transition: width 0.5s ease;"></div>
+            <div id="loading-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%;"></div>
         </div>
     </div>
 
     <div class="p-3 border-bottom border-secondary d-flex justify-content-between align-items-center" style="background-color: #161b22;">
         <div>
-            <h6 class="mb-0 fw-bold">Secure Chat Interface</h6>
+            <h5 class="mb-0">Vault Intelligence</h5>
             <small class="text-muted" id="status-indicator">Initializing...</small>
         </div>
-        <span class="offline-badge">
-            <span class="pulse-dot"></span> Secure Connection
-        </span>
+        <span class="offline-badge">● Local Processing</span>
     </div>
 
-    <div id="chat-container" class="flex-1 overflow-auto p-4" style="background-color: #0E1117; height: calc(100vh - 140px);">
+    <div id="chat-container" class="flex-1 overflow-auto p-4 d-flex flex-column" style="background-color: #0E1117;">
+
+        {% if not messages %}
+        <div id="welcome-message" class="text-center text-muted mt-5">
+            <h3>🛡️ Vault Encrypted & Active</h3>
+            <p>Ready to analyze {{ uploaded_files|length }} document(s).</p>
+        </div>
+        {% endif %}
+
+        <div id="message-history" class="d-flex flex-column">
+            {% for msg in messages %}
+            <div class="message mb-3 {% if msg.role == 'user' %}text-end{% endif %}">
+                <div class="d-inline-block p-3 rounded-3 message-bubble {% if msg.role == 'user' %}user-bubble{% else %}ai-bubble{% endif %}" style="max-width: 85%;">
+                    {{ msg.content | safe }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
         <div id="streaming-message" class="message mb-3 d-none">
-            <div class="d-inline-block p-3 rounded-3 bg-dark border border-secondary text-light message-bubble ai-bubble" style="max-width: 85%;">
+            <div class="d-inline-block p-3 rounded-3 message-bubble ai-bubble" style="max-width: 85%;">
                 <div id="stream-content"></div>
-                <div id="stream-sources" class="mt-2 pt-2 border-top border-secondary small text-muted"></div>
             </div>
         </div>
     </div>
@@ -84,8 +95,8 @@
     <div class="p-3 border-top border-secondary" style="background-color: #161b22;">
         <form id="chat-form" class="d-flex gap-2">
             <input type="text" id="message-input" class="form-control bg-dark text-light border-secondary"
-                   placeholder="Wait for processing to finish..." autocomplete="off" disabled>
-            <button type="submit" class="btn btn-success fw-bold" id="send-btn" disabled>Send</button>
+                   placeholder="Ask anything about the documents..." autocomplete="off" disabled>
+            <button type="submit" class="btn btn-success" id="send-btn" disabled>Send</button>
         </form>
     </div>
 </div>
@@ -93,11 +104,4 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
-<script>
-    // Pass file info to JS
-    window.currentFile = {
-        type: '{{ current_file.type }}',
-        name: '{{ current_file.name }}'
-    };
-</script>
 {% endblock %}

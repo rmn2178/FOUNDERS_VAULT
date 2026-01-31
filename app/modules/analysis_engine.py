@@ -3,22 +3,32 @@ from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe
 from app.modules.llm_engine import get_llm
 
 
-def analyze_csv(file_path, model_name):
-    """Create pandas agent for CSV analysis"""
+def analyze_csvs(file_infos, model_name):
+    """
+    Create a pandas agent that can analyze multiple CSV files simultaneously.
+    """
+    dfs = []
     try:
-        df = pd.read_csv(file_path)
+        for file_info in file_infos:
+            df = pd.read_csv(file_info['path'])
+            dfs.append(df)
+
+        if not dfs:
+            raise ValueError("No valid CSV files provided.")
+
     except Exception as e:
-        raise ValueError(f"Failed to read CSV: {e}")
+        raise ValueError(f"Failed to read CSV data: {str(e)}")
 
     llm = get_llm(model_name)
 
+    # Creates an agent that handles a list of DataFrames
     agent = create_pandas_dataframe_agent(
         llm,
-        df,
+        dfs,
         verbose=True,
-        allow_dangerous_code=True,  # Note: In production, sandbox this
+        allow_dangerous_code=True,
         handle_parsing_errors=True,
         max_iterations=10
     )
 
-    return agent, df
+    return agent, dfs
