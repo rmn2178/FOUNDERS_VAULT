@@ -1,0 +1,133 @@
+/* Base Theme */
+body {
+    background-color: #0E1117;
+    color: #FAFAFA;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scan {
+    0% { top: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* Processing Overlay Styles */
+.vault-icon-lg {
+    font-size: 5rem;
+    filter: drop-shadow(0 0 30px rgba(0, 200, 83, 0.2));
+}
+
+.scanner-container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scanner-line {
+    position: absolute;
+    width: 120%;
+    height: 2px;
+    background: #00C853;
+    box-shadow: 0 0 10px #00C853;
+    animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    z-index: 10;
+}
+
+/* Header Badge */
+.offline-badge {
+    color: #00C853;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #00C853;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+/* Message Styles */
+.message {
+    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0; /* Start hidden for animation */
+}
+
+.message-bubble {
+    transition: all 0.2s ease;
+    line-height: 1.6;
+}
+
+.user-bubble {
+    background: linear-gradient(135deg, #00C853 0%, #009624 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 200, 83, 0.15);
+    border: none;
+}
+
+.ai-bubble {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d !important;
+    color: #e6edf3;
+}
+
+/* Sidebar Delays */
+.fade-in-delay-1 { animation: fadeInUp 0.5s ease-out 0.1s forwards; opacity: 0; }
+.fade-in-delay-2 { animation: fadeInUp 0.5s ease-out 0.2s forwards; opacity: 0; }
+.fade-in-delay-3 { animation: fadeInUp 0.5s ease-out 0.3s forwards; opacity: 0; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0E1117; }
+::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
+
+/* Markdown & Code */
+.markdown-content pre {
+    background: #0d1117 !important;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+}
+.markdown-content code {
+    color: #79c0ff;
+    background: rgba(110, 118, 129, 0.2);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.streaming-cursor {
+    display: inline-block;
+    color: #00C853;
+    font-weight: bold;
+    animation: blink 1s infinite;
+    margin-left: 2px;
+}

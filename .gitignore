@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.env
+.DS_Store
+data/*
+!data/.gitkeep
+chroma_db/*
+!chroma_db/.gitkeep
+flask_session/
+*.db
+*.sqlite3
