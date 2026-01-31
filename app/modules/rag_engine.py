@@ -1,5 +1,7 @@
 import os
 import shutil
+import gc
+import time
 from langchain_community.vectorstores import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
@@ -17,11 +19,16 @@ class RAGManager:
         """Process PDF and return vectordb and llm instances"""
         llm = get_llm(model_name)
 
+        # --- ROBUST DB DELETION LOGIC ---
         if clean_db and os.path.exists(self.db_path):
             try:
+                gc.collect()
+                time.sleep(0.1)
                 shutil.rmtree(self.db_path)
+                print("🗑️ Previous Vector DB wiped successfully.")
             except OSError as e:
-                print(f"Error cleaning DB: {e}")
+                print(f"⚠️ Warning: Could not fully wipe DB: {e}")
+        # -------------------------------------
 
         # Load and split PDF
         loader = PyPDFLoader(file_path)
@@ -42,7 +49,6 @@ class RAGManager:
         return vectordb, llm
 
     def get_existing_db(self):
-        """Load existing Chroma DB if available"""
         if os.path.exists(self.db_path) and os.listdir(self.db_path):
             return Chroma(
                 persist_directory=self.db_path,
@@ -53,21 +59,27 @@ class RAGManager:
     def query(self, vectordb, llm, query):
         """Execute RAG query with streaming support"""
         # Fetch relevant docs
-        retriever = vectordb.as_retriever(search_kwargs={"k": 2})
+        retriever = vectordb.as_retriever(search_kwargs={"k": 3})
         docs = retriever.invoke(query)
 
         context_text = "\n\n".join([d.page_content for d in docs])
 
-        prompt = f"""You are a helpful assistant for a startup founder.
-Answer the question based ONLY on the following context:
-<context>
-{context_text}
-</context>
+        # --- IMPROVED STRUCTURAL PROMPT ---
+        prompt = f"""You are a helpful and organized assistant. Answer the question based ONLY on the provided context.
 
-Question: {query}
+        FORMATTING INSTRUCTIONS:
+        - Use clear paragraphs for explanations.
+        - Use bullet points or numbered lists if listing multiple items.
+        - Use bold text for key terms.
+        - Do NOT dump text in a single block. Structure your answer.
 
-If the answer is not in the context, say "I don't have enough information to answer that based on the document."
-"""
+        <context>
+        {context_text}
+        </context>
+
+        Question: {query}
+        """
+
         # Return generator for streaming
         stream_generator = llm.stream(prompt)
         return stream_generator, docs

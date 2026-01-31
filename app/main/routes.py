@@ -45,19 +45,25 @@ def upload_file():
         filename = secure_filename(file.filename)
         file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
 
-        # Check if we already have a file and need to handle merge/clean
-        existing_file = store.get(session['session_id'], 'current_file')
-        action = request.form.get('action', 'replace')  # 'replace' or 'merge'
+        # --- NEW: DELETE PREVIOUS FILE & PREPARE DB CLEAN ---
+        previous_file = store.get(session['session_id'], 'current_file')
 
-        if existing_file and existing_file['name'] != filename:
-            if action == 'replace':
-                store.set(session['session_id'], 'clean_db_flag', True)
-            else:
-                store.set(session['session_id'], 'clean_db_flag', False)
+        # 1. Physically delete the old file if it exists
+        if previous_file:
+            try:
+                if os.path.exists(previous_file['path']):
+                    os.remove(previous_file['path'])
+                    print(f"🗑️ Deleted previous file: {previous_file['name']}")
+            except Exception as e:
+                print(f"⚠️ Error deleting previous file: {e}")
+
+        # 2. Flag to wipe Vector DB (handled in events.py -> rag_engine.py)
+        store.set(session['session_id'], 'clean_db_flag', True)
+        # -----------------------------------------------------
 
         file.save(file_path)
 
-        # Store file info
+        # Store new file info
         store.set(session['session_id'], 'current_file', {
             'name': filename,
             'path': file_path,

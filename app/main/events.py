@@ -29,7 +29,12 @@ def handle_process(data):
 
     try:
         if file_info['type'] == 'pdf':
-            emit('status', {'message': 'Processing PDF...', 'icon': '📄'})
+            # 1. Reading Stage
+            emit('status', {'message': 'Reading PDF Document...', 'icon': '📄'})
+            socketio.sleep(0.5)
+
+            # 2. Vectorization Stage
+            emit('status', {'message': 'Generating Vector Embeddings...', 'icon': '🧠'})
 
             rag_manager = RAGManager(current_app.config['CHROMA_DB_PATH'])
             vectordb, llm = rag_manager.process_pdf(
@@ -39,26 +44,27 @@ def handle_process(data):
                 clean_db=clean_db
             )
 
-            # Store in session
             store.set(sid, 'vectordb', vectordb)
             store.set(sid, 'llm', llm)
             store.set(sid, 'mode', 'pdf')
 
-            emit('status', {'message': 'Knowledge Base Updated!', 'icon': '✅'})
+            # 3. Finalization Stage
+            emit('status', {'message': 'Finalizing Knowledge Base...', 'icon': '💾'})
+            socketio.sleep(0.5)
+
             emit('ready', {'mode': 'pdf', 'message': 'PDF processed successfully'})
 
         elif file_info['type'] == 'csv':
-            # CSV doesn't need pre-processing like PDF, but we verify it loads
-            emit('status', {'message': 'Loading CSV...', 'icon': '📊'})
+            emit('status', {'message': 'Loading CSV Data...', 'icon': '📊'})
+            socketio.sleep(0.5)
+
             agent, df = analyze_csv(file_info['path'], model)
 
-            # Store agent and preview
             store.set(sid, 'csv_agent', agent)
             store.set(sid, 'csv_path', file_info['path'])
             store.set(sid, 'mode', 'csv')
-            store.set(sid, 'df_preview', df.head(10).to_html(classes='table table-dark table-sm'))
+            store.set(sid, 'df_preview', df.head(10).to_html(classes='table table-dark table-sm table-striped'))
 
-            emit('status', {'message': 'CSV Loaded!', 'icon': '✅'})
             emit('ready', {
                 'mode': 'csv',
                 'preview': store.get(sid, 'df_preview'),
@@ -71,7 +77,7 @@ def handle_process(data):
 
 @socketio.on('chat_message')
 def handle_message(data):
-    """Handle chat queries"""
+    """Handle chat queries with Thinking -> Indexing -> Answer flow"""
     sid = session.get('session_id')
     query = data.get('message', '')
     mode = store.get(sid, 'mode')
@@ -85,7 +91,6 @@ def handle_message(data):
 
     try:
         if mode == 'pdf':
-            # PDF RAG Mode with streaming
             vectordb = store.get(sid, 'vectordb')
             llm = store.get(sid, 'llm')
 
@@ -93,36 +98,51 @@ def handle_message(data):
                 emit('error', {'message': 'PDF not processed yet'})
                 return
 
+            # STEP 1: THINKING
+            emit('process_status', {'step': 'thinking', 'message': '🤔 Deconstructing query...'})
+            socketio.sleep(0.5)
+
             rag_manager = RAGManager(current_app.config['CHROMA_DB_PATH'])
-            stream_gen, sources = rag_manager.query(vectordb, llm, query)
+
+            # Retrieve documents for indexing display
+            retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+            docs = retriever.invoke(query)
+
+            # STEP 2: SHOW INDEXING CARDS
+            snippets = []
+            for i, doc in enumerate(docs):
+                snippets.append({
+                    'id': i + 1,
+                    'page': doc.metadata.get('page', '?'),
+                    'content': doc.page_content[:150] + "..."
+                })
+
+            emit('process_status', {
+                'step': 'indexing',
+                'message': f'🔍 Indexed {len(docs)} relevant segments',
+                'data': snippets
+            })
+            # Brief pause to let user see the cards before streaming starts
+            socketio.sleep(1.0)
+
+            # STEP 3: STREAMING ANSWER (Removed "Summarising" bubble)
+            stream_gen, _ = rag_manager.query(vectordb, llm, query)
 
             full_response = ""
             emit('stream_start', {})
 
-            # Stream the response
             for chunk in stream_gen:
                 text_chunk = chunk if isinstance(chunk, str) else chunk.get('text', '')
                 full_response += text_chunk
                 emit('stream_chunk', {'chunk': text_chunk})
 
-            # Send sources
-            source_text = "\n\n**Sources:**\n"
-            for doc in sources:
-                page = doc.metadata.get('page', '?')
-                content = doc.page_content[:100].replace('\n', ' ')
-                source_text += f"- Page {page}: *{content}...*\n"
+            emit('stream_end', {'sources': ''})
 
-            emit('stream_end', {'sources': source_text})
-
-            # Save to history
-            messages.append({
-                'role': 'assistant',
-                'content': full_response + source_text
-            })
+            messages.append({'role': 'assistant', 'content': full_response})
 
         elif mode == 'csv':
-            # CSV Analysis Mode (non-streaming)
-            emit('status', {'message': 'Analyzing data...', 'icon': '🔍'})
+            # CSV Analysis Mode
+            emit('process_status', {'step': 'thinking', 'message': '🔍 Analyzing tabular data...'})
 
             file_path = store.get(sid, 'csv_path')
             model = store.get(sid, 'selected_model')

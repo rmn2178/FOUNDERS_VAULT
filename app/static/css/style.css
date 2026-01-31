@@ -19,15 +19,18 @@ body {
     100% { top: 100%; opacity: 0; }
 }
 
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+@keyframes pulse-yellow {
+    to { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
 }
 
 @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
+}
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
 }
 
 /* Processing Overlay Styles */
@@ -79,9 +82,12 @@ body {
     opacity: 0; /* Start hidden for animation */
 }
 
+/* --- IMPORTANT FIX FOR STRUCTURE --- */
 .message-bubble {
     transition: all 0.2s ease;
     line-height: 1.6;
+    white-space: pre-wrap; /* This preserves newlines and formatting! */
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Clean readable font */
 }
 
 .user-bubble {
@@ -131,3 +137,49 @@ body {
     animation: blink 1s infinite;
     margin-left: 2px;
 }
+
+/* Indexing Cards */
+.index-card {
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    border: 1px solid #2d3748 !important;
+    background-color: #161b22;
+    cursor: default;
+}
+
+.index-card:hover {
+    transform: translateY(-2px);
+    border-color: #00C853 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Pulse Animation */
+.pulse-ring {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #f59e0b;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    animation: pulse-yellow 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 100%;
+}
+
+.typing-indicator span {
+    display: block;
+    width: 5px;
+    height: 5px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0s; }
