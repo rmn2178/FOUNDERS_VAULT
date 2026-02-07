@@ -63,7 +63,7 @@ class RAGManager:
             # ENFORCED STRUCTURE FOR LONG ANSWERS
             system_instruction = (
                 "You are an Academic Examiner and Subject Matter Expert. "
-                "Provide a comprehensive '16-mark' structured answer of 1000 words:\n\n"
+                "Provide a comprehensive '16-mark' structured answer of 1000 words: \n\n"
                 "## Introduction\nProvide a clear definition and overview of the topic.\n\n"
                 "## Key Analysis & Discussion\nBreak the answer into 4-5 major points with ### Sub-headers. "
                 "Use **bold text** for technical terms. Use bullet points for steps or components.\n\n"
