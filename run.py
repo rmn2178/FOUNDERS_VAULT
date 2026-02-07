@@ -14,5 +14,5 @@ if __name__ == '__main__':
         port=5000,
         debug=True,
         use_reloader=False,
-        allow_unsafe_werkzeug=True  # Required for development server
+        allow_unsafe_werkzeug=True    # Required for development server
     )

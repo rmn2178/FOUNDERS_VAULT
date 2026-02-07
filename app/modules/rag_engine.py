@@ -43,19 +43,32 @@ class RAGManager:
         )
         return vectordb, llm
 
-    def query(self, vectordb, llm, query):
-        """Execute query and return stream with sources"""
-        retriever = vectordb.as_retriever(search_kwargs={"k": 5})
+    def query(self, vectordb, llm, query, k=5, answer_length="short"):
+        """
+        Execute query with dynamic chunk retrieval (k) and prompt instructions (answer_length).
+        """
+        retriever = vectordb.as_retriever(search_kwargs={"k": k})
         docs = retriever.invoke(query)
 
         context_text = ""
         for d in docs:
             context_text += f"[Source: {d.metadata.get('source_file')}]\n{d.page_content}\n\n"
 
-        prompt = f"""You are a helpful assistant. Answer based ONLY on the context. 
-        Structure your answer with clear paragraphs and bold text for keys.
+        # --- DYNAMIC PROMPT INSTRUCTION ---
+        if answer_length == 'short':
+            # Forces the model to be concise for "2 mark" style answers
+            system_instruction = "You are a concise assistant. Answer the question in small 5 point by point or a 9 line paragraph."
+        else:
+            system_instruction = "You are a helpful assistant. Provide a comprehensive and detailed answer. Structure your answer with clear paragraphs and bold text headings."
 
-        <context>{context_text}</context>
+        prompt = f"""{system_instruction}
+
+        Answer based ONLY on the context provided below.
+
+        <context>
+        {context_text}
+        </context>
+
         Question: {query}"""
 
         return llm.stream(prompt), docs

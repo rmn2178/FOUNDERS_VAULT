@@ -3,7 +3,7 @@ from flask_socketio import emit, join_room
 from app import socketio
 from app.modules.session_store import store
 from app.modules.rag_engine import RAGManager
-from app.modules.analysis_engine import analyze_csvs  # FIXED: Import the plural name
+from app.modules.analysis_engine import analyze_csvs
 from app.modules.llm_engine import get_llm
 import os
 import time
@@ -19,7 +19,7 @@ def handle_connect():
 @socketio.on('process_file')
 def handle_process(data):
     sid = session.get('session_id')
-    files = store.get(sid, 'uploaded_files')  # Get the list
+    files = store.get(sid, 'uploaded_files')
     model = store.get(sid, 'selected_model')
     clean_db = store.get(sid, 'clean_db_flag', False)
 
@@ -42,7 +42,7 @@ def handle_process(data):
 
         elif main_type == 'csv':
             emit('status', {'message': f'Analyzing {len(files)} CSVs...', 'icon': '📊'})
-            agent, dfs = analyze_csvs(files, model)  # FIXED: Use the plural function
+            agent, dfs = analyze_csvs(files, model)
 
             store.set(sid, 'csv_agent', agent)
             store.set(sid, 'mode', 'csv')
@@ -59,6 +59,11 @@ def handle_message(data):
     sid = session.get('session_id')
     query = data.get('message', '')
     mode = store.get(sid, 'mode')
+
+    # Retrieve User Preference for Answer Length
+    length_pref = store.get(sid, 'answer_length', 'short')
+    k_chunks = 3 if length_pref == 'short' else 10
+
     if not query: return
 
     try:
@@ -66,19 +71,23 @@ def handle_message(data):
             vectordb = store.get(sid, 'vectordb')
             llm = store.get(sid, 'llm')
 
-            emit('process_status', {'step': 'thinking', 'message': '🤔 Searching...'})
+            emit('process_status', {'step': 'thinking', 'message': '🤔 Searching Vault...'})
 
-            # Indexing logic
-            retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+            # Indexing logic - Use dynamic k_chunks
+            retriever = vectordb.as_retriever(search_kwargs={"k": k_chunks})
             docs = retriever.invoke(query)
+
             snippets = [{'id': i + 1, 'page': d.metadata.get('source_file'), 'content': d.page_content[:100]} for i, d
                         in enumerate(docs)]
 
-            emit('process_status', {'step': 'indexing', 'message': '🔍 Found sources', 'data': snippets})
+            msg = f"🔍 Found {len(docs)} sources ({length_pref} mode)"
+            emit('process_status', {'step': 'indexing', 'message': msg, 'data': snippets})
             time.sleep(0.5)
 
             rag_manager = RAGManager(current_app.config['CHROMA_DB_PATH'])
-            stream_gen, _ = rag_manager.query(vectordb, llm, query)
+
+            # Pass dynamic k_chunks to the query engine
+            stream_gen, _ = rag_manager.query(vectordb, llm, query, k=k_chunks)
 
             emit('stream_start', {})
             for chunk in stream_gen:

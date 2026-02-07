@@ -3,7 +3,7 @@ import uuid
 from flask import render_template, request, redirect, url_for, flash, session, current_app
 from app.main import bp
 from app.modules.session_store import store
-from app.modules.system_check import check_ollama_status
+from app.modules.system_check import check_ollama_status, get_ollama_models
 from werkzeug.utils import secure_filename
 
 
@@ -21,12 +21,13 @@ def make_session_id():
 
 @bp.route('/')
 def index():
-    """Landing page with model selection and upload area"""
+    """Landing page with dynamic model selection and upload area"""
     if not check_ollama_status():
         flash("🚨 Ollama is not running! Please run 'ollama serve' in your terminal.", "error")
 
-    models = current_app.config['MODEL_OPTIONS']
-    # Changed from current_file to uploaded_files to support multiple selection
+    # Fetch models dynamically from the device
+    models = get_ollama_models()
+
     files = store.get(session['session_id'], 'uploaded_files')
     return render_template('index.html', models=models, uploaded_files=files)
 
@@ -38,9 +39,10 @@ def upload_file():
         flash('No file part', 'error')
         return redirect(url_for('main.index'))
 
-    # Retrieve the list of files from the multi-select input
+    # Retrieve inputs
     files = request.files.getlist('file')
     model = request.form.get('model', 'llama3.2:latest')
+    answer_length = request.form.get('answer_length', 'short')  # 'short' or 'long'
 
     if not files or files[0].filename == '':
         flash('No selected file', 'error')
@@ -78,9 +80,10 @@ def upload_file():
         flash('Invalid file type. Only PDF and CSV allowed.', 'error')
         return redirect(url_for('main.index'))
 
-    # Store the list of new file info
+    # Store settings in session
     store.set(session['session_id'], 'uploaded_files', saved_files)
     store.set(session['session_id'], 'selected_model', model)
+    store.set(session['session_id'], 'answer_length', answer_length)
     store.set(session['session_id'], 'messages', [])
 
     return redirect(url_for('main.chat'))
@@ -96,7 +99,16 @@ def chat():
 
     model = store.get(session['session_id'], 'selected_model', 'llama3.2:latest')
     messages = store.get(session['session_id'], 'messages', [])
-    models = current_app.config['MODEL_OPTIONS']
+
+    # --- FIX APPLIED HERE ---
+    # Fetch models dynamically so the template can find 'model.mode' for the sidebar badge
+    models = get_ollama_models()
+
+    # Safeguard: If the selected model isn't in the list (e.g. API temporary glitch),
+    # add a fallback to prevent 'dict object has no attribute' error.
+    if model not in models:
+        models[model] = {'name': model, 'mode': 'speed'}
+    # ------------------------
 
     return render_template('chat.html',
                            uploaded_files=files,

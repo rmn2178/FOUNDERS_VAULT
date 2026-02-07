@@ -21,15 +21,25 @@
         {% endwith %}
 
         <form action="{{ url_for('main.upload_file') }}" method="post" enctype="multipart/form-data" class="mt-4">
-            <div class="mb-4 text-start">
-                <label class="form-label text-light">Select AI Engine</label>
-                <select name="model" class="form-select bg-dark text-light border-secondary">
-                    {% for key, info in models.items() %}
-                    <option value="{{ key }}" {% if info.mode == 'performance' %}class="text-info"{% endif %}>
-                        {{ info.name }} {% if info.mode == 'performance' %}(High Performance){% else %}(Speed Mode){% endif %}
-                    </option>
-                    {% endfor %}
-                </select>
+
+            <div class="row text-start mb-4">
+                <div class="col-md-6">
+                    <label class="form-label text-light small text-uppercase fw-bold">Select AI Engine</label>
+                    <select name="model" class="form-select bg-dark text-light border-secondary">
+                        {% for key, info in models.items() %}
+                        <option value="{{ key }}" {% if info.mode == 'performance' %}class="text-info"{% endif %}>
+                            {{ info.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-light small text-uppercase fw-bold">Response Depth</label>
+                    <select name="answer_length" class="form-select bg-dark text-light border-secondary">
+                        <option value="short" selected>⚡ Concise (Speed / 3 Chunks)</option>
+                        <option value="long">🧠 Comprehensive (Deep / 10 Chunks)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="mb-4">
@@ -39,7 +49,7 @@
                         <p class="mt-3 mb-1">Drop Documents Here</p>
                         <small class="text-muted">Supports PDF and CSV</small>
                     </div>
-                    <input type="file" name="file" id="file" class="d-none" accept=".pdf,.csv" required onchange="updateFilename(this)">
+                    <input type="file" name="file" id="file" class="d-none" accept=".pdf,.csv" multiple required onchange="updateFilename(this)">
                 </label>
                 <div id="filename-display" class="mt-2 text-info"></div>
             </div>
@@ -57,8 +67,12 @@
 
 <script>
 function updateFilename(input) {
-    if (input.files && input.files[0]) {
-        document.getElementById('filename-display').textContent = 'Selected: ' + input.files[0].name;
+    if (input.files && input.files.length > 0) {
+        if(input.files.length === 1) {
+            document.getElementById('filename-display').textContent = 'Selected: ' + input.files[0].name;
+        } else {
+            document.getElementById('filename-display').textContent = 'Selected: ' + input.files.length + ' files';
+        }
     }
 }
 </script>
