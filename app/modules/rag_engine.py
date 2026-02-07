@@ -56,10 +56,20 @@ class RAGManager:
 
         # --- DYNAMIC PROMPT INSTRUCTION ---
         if answer_length == 'short':
-            # Forces the model to be concise for "2 mark" style answers
-            system_instruction = "You are a concise assistant. Answer the question in small 5 point by point or a 9 line paragraph."
+            system_instruction = (
+                "You are a concise assistant. Provide a answer in 5 small points."
+            )
         else:
-            system_instruction = "You are a helpful assistant. Provide a comprehensive and detailed answer. Structure your answer with clear paragraphs and bold text headings."
+            # ENFORCED STRUCTURE FOR LONG ANSWERS
+            system_instruction = (
+                "You are an Academic Examiner and Subject Matter Expert. "
+                "Provide a comprehensive '16-mark' structured answer of 1000 words:\n\n"
+                "## Introduction\nProvide a clear definition and overview of the topic.\n\n"
+                "## Key Analysis & Discussion\nBreak the answer into 4-5 major points with ### Sub-headers. "
+                "Use **bold text** for technical terms. Use bullet points for steps or components.\n\n"
+                "## Conclusion\nProvide a final synthesis and summary of the information.\n\n"
+                "Ensure the content is exhaustive, professional, and well-cited based on the context."
+            )
 
         prompt = f"""{system_instruction}
 
